@@ -1,4 +1,4 @@
-"""Clientes intercambiables para búsqueda web cruda (usado por search_web)."""
+"""Interchangeable clients for raw web search (used by search_web)."""
 from __future__ import annotations
 
 from typing import Protocol
@@ -21,7 +21,7 @@ class TavilyClient:
 
     def search(self, query: str, max_results: int) -> ToolResult:
         if not self._api_key:
-            raise RuntimeError("TAVILY_API_KEY no está configurada.")
+            raise RuntimeError("TAVILY_API_KEY is not configured.")
 
         payload = {
             "api_key": self._api_key,
@@ -50,7 +50,7 @@ class BraveClient:
 
     def search(self, query: str, max_results: int) -> ToolResult:
         if not self._api_key:
-            raise RuntimeError("BRAVE_API_KEY no está configurada.")
+            raise RuntimeError("BRAVE_API_KEY is not configured.")
 
         headers = {"X-Subscription-Token": self._api_key, "Accept": "application/json"}
         params = {"q": query, "count": max_results}
@@ -74,4 +74,4 @@ def get_web_search_client() -> WebSearchClient:
         return TavilyClient()
     if provider == "brave":
         return BraveClient()
-    raise ValueError(f"Proveedor de búsqueda web no soportado: {provider}")
+    raise ValueError(f"Unsupported web search provider: {provider}")

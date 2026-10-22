@@ -18,7 +18,7 @@ class _FakeQdrantClient:
 
     def search(self, **kwargs: object) -> list[_FakeHit]:
         return [
-            _FakeHit({"title": "Paper X", "url": "https://example.com/paper-x", "text": "Limitación: muestra pequeña."}),
+            _FakeHit({"title": "Paper X", "url": "https://example.com/paper-x", "text": "Limitation: small sample size."}),
         ]
 
 
@@ -29,7 +29,7 @@ def test_knowledge_base_search_builds_tool_result(monkeypatch) -> None:
     )
 
     client = KnowledgeBaseClient(embedder=_FakeEmbedder())
-    result = client.search("¿cuáles son las limitaciones?", max_results=5)
+    result = client.search("what are the limitations?", max_results=5)
 
     assert isinstance(result, ToolResult)
     assert len(result.sources) == 1

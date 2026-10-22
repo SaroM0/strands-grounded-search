@@ -1,4 +1,4 @@
-"""Cliente mínimo para la API de Perplexity Sonar (usado por research_with_sonar)."""
+"""Minimal client for the Perplexity Sonar API (used by research_with_sonar)."""
 from __future__ import annotations
 
 import httpx
@@ -16,7 +16,7 @@ class PerplexityClient:
 
     def research(self, query: str) -> ToolResult:
         if not self._api_key:
-            raise RuntimeError("PERPLEXITY_API_KEY no está configurada.")
+            raise RuntimeError("PERPLEXITY_API_KEY is not configured.")
 
         payload = {
             "model": self._model,
@@ -24,9 +24,9 @@ class PerplexityClient:
                 {
                     "role": "system",
                     "content": (
-                        "Eres un motor de investigación. Sintetiza la evidencia disponible, "
-                        "señala acuerdos y desacuerdos entre fuentes, y deja claro de dónde "
-                        "viene cada afirmación."
+                        "You are a research engine. Synthesize the available evidence, point "
+                        "out agreements and disagreements between sources, and make clear "
+                        "where each claim comes from."
                     ),
                 },
                 {"role": "user", "content": query},

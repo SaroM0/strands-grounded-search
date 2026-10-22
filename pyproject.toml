@@ -1,11 +1,11 @@
 [project]
 name = "grounded-search"
 version = "0.1.0"
-description = "Agente de investigación con grounding construido sobre Strands Agents."
+description = "Grounded research agent built on Strands Agents."
 requires-python = ">=3.10"
 dependencies = [
     "strands-agents>=0.1.0",
-    "anthropic>=0.40.0",
+    "boto3>=1.34.0",
     "httpx>=0.27.0",
     "python-dotenv>=1.0.0",
     "qdrant-client>=1.9.0",

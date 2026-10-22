@@ -1,7 +1,7 @@
-"""Cliente para la base de conocimiento documental (usado por search_knowledge_base).
+"""Client for the document knowledge base (used by search_knowledge_base).
 
-Usa Qdrant para la búsqueda vectorial y un Embedder intercambiable (por defecto, fastembed
-corriendo en local, sin dependencia de una API externa).
+Uses Qdrant for vector search and an interchangeable Embedder (defaults to fastembed running
+locally, with no dependency on an external API).
 """
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ class Embedder(Protocol):
 
 
 class FastEmbedEmbedder:
-    """Embeddings locales vía fastembed."""
+    """Local embeddings via fastembed."""
 
     def __init__(self, model_name: str | None = None) -> None:
         from fastembed import TextEmbedding
@@ -32,7 +32,7 @@ class FastEmbedEmbedder:
 def get_embedder() -> Embedder:
     if settings.embedding_provider == "fastembed":
         return FastEmbedEmbedder()
-    raise ValueError(f"Proveedor de embeddings no soportado: {settings.embedding_provider}")
+    raise ValueError(f"Unsupported embedding provider: {settings.embedding_provider}")
 
 
 class KnowledgeBaseClient:
@@ -51,7 +51,7 @@ class KnowledgeBaseClient:
 
         sources = [
             Source(
-                title=hit.payload.get("title", hit.payload.get("source", "documento")),
+                title=hit.payload.get("title", hit.payload.get("source", "document")),
                 url=hit.payload.get("url"),
                 snippet=(hit.payload.get("text", "") or "")[:500],
             )

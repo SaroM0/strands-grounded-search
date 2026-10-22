@@ -1,4 +1,4 @@
-"""Herramienta: search_knowledge_base."""
+"""Tool: search_knowledge_base."""
 from __future__ import annotations
 
 from strands import tool
@@ -19,16 +19,16 @@ def _get_client() -> KnowledgeBaseClient:
 @tool
 def search_knowledge_base(query: str) -> dict:
     """
-    Recupera pasajes relevantes de la base documental cargada (Qdrant), vía búsqueda semántica.
+    Retrieves relevant passages from the loaded document base (Qdrant) via semantic search.
 
-    Úsala cuando la pregunta se refiera explícitamente a documentos cargados por el usuario
-    (papers, informes, actas) y no a conocimiento general o a la web.
+    Use it when the question explicitly refers to documents uploaded by the user (papers,
+    reports, meeting notes) rather than to general knowledge or the web.
 
     Args:
-        query: La pregunta o concepto a buscar en los documentos.
+        query: The question or concept to search for in the documents.
 
     Returns:
-        Un diccionario con los pasajes recuperados ("content") y sus fuentes ("sources").
+        A dictionary with the retrieved passages ("content") and their sources ("sources").
     """
     result = _get_client().search(query, max_results=settings.kb_max_results)
     return result.to_dict()

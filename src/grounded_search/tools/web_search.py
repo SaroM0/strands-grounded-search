@@ -1,4 +1,4 @@
-"""Herramienta: search_web."""
+"""Tool: search_web."""
 from __future__ import annotations
 
 from strands import tool
@@ -10,18 +10,17 @@ from ..config import settings
 @tool
 def search_web(query: str) -> dict:
     """
-    Busca en la web resultados crudos (título, URL, fragmento) sin delegar la síntesis a otro
-    modelo.
+    Searches the web for raw results (title, URL, snippet) without delegating the synthesis to
+    another model.
 
-    Úsala para hechos puntuales, datos recientes o verificables (versiones, fechas, cifras)
-    donde conviene ver las fuentes originales en lugar de una respuesta ya sintetizada.
+    Use it for specific facts, recent data, or verifiable claims (versions, dates, figures) where
+    it's better to see the original sources rather than an already-synthesized answer.
 
     Args:
-        query: Los términos de búsqueda.
+        query: The search terms.
 
     Returns:
-        Un diccionario con un resumen de resultados ("content") y la lista de fuentes
-        ("sources").
+        A dictionary with a summary of results ("content") and the list of sources ("sources").
     """
     client = get_web_search_client()
     result = client.search(query, max_results=settings.web_search_max_results)

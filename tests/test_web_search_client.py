@@ -9,7 +9,7 @@ class _FakeResponse:
     def json(self) -> dict:
         return {
             "results": [
-                {"title": "Python 3.13", "url": "https://python.org", "content": "Última versión estable."},
+                {"title": "Python 3.13", "url": "https://python.org", "content": "Latest stable release."},
             ]
         }
 
@@ -33,7 +33,7 @@ def test_tavily_search_builds_tool_result(monkeypatch) -> None:
         lambda **kwargs: _FakeHTTPClient(),
     )
 
-    result = client.search("¿última versión de Python?", max_results=5)
+    result = client.search("latest version of Python?", max_results=5)
 
     assert isinstance(result, ToolResult)
     assert len(result.sources) == 1

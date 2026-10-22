@@ -1,4 +1,4 @@
-"""Tipos compartidos entre las tres herramientas de investigación."""
+"""Types shared across the three research tools."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field

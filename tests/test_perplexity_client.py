@@ -8,7 +8,7 @@ class _FakeResponse:
 
     def json(self) -> dict:
         return {
-            "choices": [{"message": {"content": "Síntesis de prueba."}}],
+            "choices": [{"message": {"content": "Test synthesis."}}],
             "citations": ["https://example.com/a", "https://example.com/b"],
         }
 
@@ -32,10 +32,10 @@ def test_research_builds_tool_result_from_api_response(monkeypatch) -> None:
         lambda **kwargs: _FakeHTTPClient(),
     )
 
-    result = client.research("¿pregunta de prueba?")
+    result = client.research("test question?")
 
     assert isinstance(result, ToolResult)
-    assert result.content == "Síntesis de prueba."
+    assert result.content == "Test synthesis."
     assert [source.url for source in result.sources] == [
         "https://example.com/a",
         "https://example.com/b",
@@ -49,4 +49,4 @@ def test_research_requires_api_key() -> None:
     except RuntimeError as exc:
         assert "PERPLEXITY_API_KEY" in str(exc)
     else:
-        raise AssertionError("se esperaba RuntimeError sin API key")
+        raise AssertionError("expected RuntimeError without an API key")
