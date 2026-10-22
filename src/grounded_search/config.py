@@ -10,7 +10,8 @@ load_dotenv()
 
 
 def _env(name: str, default: str | None = None) -> str | None:
-    return os.environ.get(name, default)
+    value = os.environ.get(name)
+    return value if value else default
 
 
 @dataclass(frozen=True)
@@ -41,6 +42,17 @@ class Settings:
     embedding_provider: str = field(default_factory=lambda: _env("EMBEDDING_PROVIDER", "fastembed"))
     embedding_model: str = field(default_factory=lambda: _env("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5"))
     kb_max_results: int = field(default_factory=lambda: int(_env("KB_MAX_RESULTS", "5")))
+
+    # search_research_cache tool (Qdrant) - semantic cache of search_web / research_with_sonar results
+    research_cache_collection: str = field(
+        default_factory=lambda: _env("RESEARCH_CACHE_COLLECTION", "grounded_search_cache")
+    )
+    research_cache_max_results: int = field(
+        default_factory=lambda: int(_env("RESEARCH_CACHE_MAX_RESULTS", "3"))
+    )
+    research_cache_min_score: float = field(
+        default_factory=lambda: float(_env("RESEARCH_CACHE_MIN_SCORE", "0.75"))
+    )
 
 
 settings = Settings()

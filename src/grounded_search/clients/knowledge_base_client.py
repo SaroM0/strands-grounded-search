@@ -5,34 +5,11 @@ locally, with no dependency on an external API).
 """
 from __future__ import annotations
 
-from typing import Protocol
-
 from qdrant_client import QdrantClient as _QdrantClient
 
 from ..config import settings
 from ..schemas import Source, ToolResult
-
-
-class Embedder(Protocol):
-    def embed(self, text: str) -> list[float]: ...
-
-
-class FastEmbedEmbedder:
-    """Local embeddings via fastembed."""
-
-    def __init__(self, model_name: str | None = None) -> None:
-        from fastembed import TextEmbedding
-
-        self._model = TextEmbedding(model_name=model_name or settings.embedding_model)
-
-    def embed(self, text: str) -> list[float]:
-        return list(next(self._model.embed([text])))
-
-
-def get_embedder() -> Embedder:
-    if settings.embedding_provider == "fastembed":
-        return FastEmbedEmbedder()
-    raise ValueError(f"Unsupported embedding provider: {settings.embedding_provider}")
+from .embedding import Embedder, get_embedder
 
 
 class KnowledgeBaseClient:
@@ -43,11 +20,11 @@ class KnowledgeBaseClient:
 
     def search(self, query: str, max_results: int) -> ToolResult:
         vector = self._embedder.embed(query)
-        hits = self._client.search(
+        hits = self._client.query_points(
             collection_name=self._collection,
-            query_vector=vector,
+            query=vector,
             limit=max_results,
-        )
+        ).points
 
         sources = [
             Source(

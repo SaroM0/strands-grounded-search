@@ -12,14 +12,21 @@ class _FakeHit:
         self.payload = payload
 
 
+class _FakeQueryResponse:
+    def __init__(self, points: list[_FakeHit]) -> None:
+        self.points = points
+
+
 class _FakeQdrantClient:
     def __init__(self, *args: object, **kwargs: object) -> None:
         pass
 
-    def search(self, **kwargs: object) -> list[_FakeHit]:
-        return [
-            _FakeHit({"title": "Paper X", "url": "https://example.com/paper-x", "text": "Limitation: small sample size."}),
-        ]
+    def query_points(self, **kwargs: object) -> _FakeQueryResponse:
+        return _FakeQueryResponse(
+            [
+                _FakeHit({"title": "Paper X", "url": "https://example.com/paper-x", "text": "Limitation: small sample size."}),
+            ]
+        )
 
 
 def test_knowledge_base_search_builds_tool_result(monkeypatch) -> None:

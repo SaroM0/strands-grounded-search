@@ -7,16 +7,19 @@ from .agent import build_agent
 
 
 def main() -> None:
-    query = " ".join(sys.argv[1:]).strip()
-    if not query:
-        query = input("Research question: ").strip()
+    args_query = " ".join(sys.argv[1:]).strip()
+    agent = build_agent()
 
-    if not query:
-        print("No question was provided.")
+    if args_query:
+        agent(args_query)
         return
 
-    agent = build_agent()
-    agent(query)
+    print("Type a research question. Empty input or 'exit' to quit.")
+    while True:
+        query = input("\n> ").strip()
+        if not query or query.lower() in {"exit", "quit"}:
+            break
+        agent(query)
 
 
 if __name__ == "__main__":

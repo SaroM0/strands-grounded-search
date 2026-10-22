@@ -7,7 +7,7 @@ from strands.models.bedrock import BedrockModel
 
 from .config import settings
 from .prompts import SYSTEM_PROMPT
-from .tools import research_with_sonar, search_knowledge_base, search_web
+from .tools import research_with_sonar, search_knowledge_base, search_research_cache, search_web
 
 
 def _build_bedrock_model() -> BedrockModel:
@@ -47,5 +47,5 @@ def build_agent() -> Agent:
     return Agent(
         model=model,
         system_prompt=SYSTEM_PROMPT,
-        tools=[research_with_sonar, search_web, search_knowledge_base],
+        tools=[research_with_sonar, search_web, search_knowledge_base, search_research_cache],
     )
