@@ -1,0 +1,28 @@
+[project]
+name = "grounded-search"
+version = "0.1.0"
+description = "Agente de investigación con grounding construido sobre Strands Agents."
+requires-python = ">=3.10"
+dependencies = [
+    "strands-agents>=0.1.0",
+    "anthropic>=0.40.0",
+    "httpx>=0.27.0",
+    "python-dotenv>=1.0.0",
+    "qdrant-client>=1.9.0",
+    "fastembed>=0.3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+]
+
+[project.scripts]
+grounded-search = "grounded_search.cli:main"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
