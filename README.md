@@ -19,6 +19,7 @@ src/grounded_search/
     live_log.py             # LiveLogger: logs each agent-loop step to the console as it happens
     trajectory.py           # TrajectoryRecorder: logs model calls, tool calls, order, reformulations
     cache_first.py          # CacheFirstPolicy: blocks external searches until the cache was checked
+    human_approval.py       # HumanApproval: interrupts until a human approves an external search
   prompts/
     system_prompt.py        # Role, tool-choice heuristic, evidence evaluation, response format
   clients/
@@ -33,6 +34,7 @@ src/grounded_search/
     web_search.py            # @tool search_web (writes to the research cache)
     knowledge_base.py        # @tool search_knowledge_base
     research_cache.py        # @tool search_research_cache
+    ask_user.py              # @tool ask_user (HITL clarifying question, HITL_CLARIFY)
 tests/                       # Unit tests per client, with HTTP/Qdrant mocked
 ```
 
@@ -114,6 +116,35 @@ Strands fires typed events around every step of the agent loop (`BeforeInvocatio
   it cancels `search_web` / `research_with_sonar` until `search_research_cache` was called in the
   same invocation. The model receives the cancellation as a tool error, so the trajectory shows how
   it adapts to a rule the prompt only *suggests*.
+
+### Human in the loop (interrupts)
+
+Two independent toggles, both on by default (and always off in the eval runner):
+
+- **`HITL_APPROVAL=true`** — hook-based interrupt. `HumanApproval` raises
+  `BeforeToolCallEvent.interrupt(...)` before every call to a tool in `HITL_APPROVAL_TOOLS`
+  (default `search_web,research_with_sonar`, the ones that cost money). The CLI shows the tool and
+  its query and waits: `y` approves once, `t` trusts that tool for the rest of the session
+  (stored in `agent.state`), `n`/empty denies, and any other text denies *and* is forwarded to
+  the model as feedback ("use the knowledge base instead"). A denial reaches the model through
+  `cancel_tool`, like `CacheFirstPolicy`'s blocks; calls that policy already cancelled aren't asked.
+- **`HITL_CLARIFY=true`** — tool-based interrupt. Registers `ask_user(question)`, which calls
+  `tool_context.interrupt(...)` so the agent can ask you a clarifying question before researching
+  the wrong interpretation.
+
+While paused, `agent(query)` returns `stop_reason == "interrupt"` with `result.interrupts`; the
+CLI collects one answer per interrupt and resumes with
+`agent([{"interruptResponse": {"interruptId": ..., "response": ...}}])`. Execution continues
+from the interrupted tool call, not from scratch, and the hooks treat the resume as the same
+invocation (same trajectory, cache-first state kept).
+
+`SESSION_ID=<id>` adds a `FileSessionManager` (files under `SESSION_DIR`, default `.sessions/`):
+the conversation and agent state, including tools you trusted with `t`, survive across runs that
+use the same id.
+
+```bash
+SESSION_ID=demo python -m grounded_search.cli
+```
 
 ### Structured output (`schemas.GroundedAnswer`)
 

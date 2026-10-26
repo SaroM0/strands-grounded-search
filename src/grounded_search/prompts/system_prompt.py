@@ -71,3 +71,19 @@ tool that returned it.
 Respond in the same language the question was asked in. Be precise and don't fabricate sources \
 or data that don't come from the tools.
 """
+
+# Appended when HITL_CLARIFY is on (the ask_user tool is only registered then).
+CLARIFY_PROMPT = """
+## Asking the user
+- ask_user(question): pauses and asks the user a clarifying question. Use it at most once or \
+twice, and only when the question is ambiguous in a way that would change what you research; \
+otherwise pick the most reasonable interpretation and state it in the limitations.
+"""
+
+# Appended when HITL_APPROVAL is on.
+APPROVAL_PROMPT = """
+## Human approval
+Some external calls need the user's approval before they run. If one is declined, don't retry \
+it as-is: follow the user's feedback if there is any, and otherwise answer with the evidence you \
+have, reporting what couldn't be checked in the limitations.
+"""

@@ -10,6 +10,8 @@ from strands.hooks import (
     HookRegistry,
 )
 
+from .interrupts import is_resume
+
 CACHE_TOOL = "search_research_cache"
 EXTERNAL_TOOLS = frozenset({"search_web", "research_with_sonar"})
 
@@ -44,6 +46,8 @@ class CacheFirstPolicy(HookProvider):
         registry.add_callback(AfterToolsEvent, self._end_batch)
 
     def _reset(self, event: BeforeInvocationEvent) -> None:
+        if is_resume(event):
+            return
         self.cache_consulted = False
         self._cache_in_batch = False
 

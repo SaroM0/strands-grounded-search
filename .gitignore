@@ -8,3 +8,4 @@ venv/
 qdrant_storage/
 traces.jsonl
 evals/results/
+.sessions/

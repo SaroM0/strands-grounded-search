@@ -33,7 +33,16 @@ VARIANTS = {
 def run_case(case: EvalCase, variant: str, judge: Judge | None, live_log: bool) -> tuple[CaseMetrics, dict]:
     recorder, collector = TrajectoryRecorder(), SourceCollector()
     # A fresh agent per case: the conversation history of one case must not help the next one.
-    agent = build_agent(hooks=[recorder, collector], live_log=live_log, quiet=True, **VARIANTS[variant])
+    # No human in the loop here: approvals / clarifying questions and session persistence are off.
+    agent = build_agent(
+        hooks=[recorder, collector],
+        live_log=live_log,
+        quiet=True,
+        hitl_approval=False,
+        hitl_clarify=False,
+        session_id="",
+        **VARIANTS[variant],
+    )
     answer, usage, error = None, None, None
     started = time.monotonic()
     try:

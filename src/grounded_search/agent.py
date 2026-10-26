@@ -8,13 +8,14 @@ import boto3
 from strands import Agent
 from strands.hooks import HookProvider
 from strands.models.bedrock import BedrockModel
+from strands.session import FileSessionManager
 
 from .config import settings
-from .hooks import CacheFirstPolicy, LiveLogger
-from .prompts import SYSTEM_PROMPT
+from .hooks import CacheFirstPolicy, HumanApproval, LiveLogger
+from .prompts import APPROVAL_PROMPT, CLARIFY_PROMPT, SYSTEM_PROMPT
 from .schemas import GroundedAnswer
 from .telemetry import setup_telemetry
-from .tools import research_with_sonar, search_knowledge_base, search_research_cache, search_web
+from .tools import ask_user, research_with_sonar, search_knowledge_base, search_research_cache, search_web
 
 logger = logging.getLogger(__name__)
 
@@ -54,6 +55,9 @@ def build_agent(
     *,
     enforce_cache_first: bool | None = None,
     live_log: bool | None = None,
+    hitl_approval: bool | None = None,
+    hitl_clarify: bool | None = None,
+    session_id: str | None = None,
     quiet: bool = False,
 ) -> Agent:
     """Creates the orchestrator agent.
@@ -69,32 +73,57 @@ def build_agent(
         hooks: Extra hook providers (e.g. a TrajectoryRecorder) to observe the agent loop.
         enforce_cache_first: Overrides ENFORCE_CACHE_FIRST (the eval runner compares both).
         live_log: Overrides LIVE_LOG.
+        hitl_approval: Overrides HITL_APPROVAL: pause for a human "yes" before the tools in
+            HITL_APPROVAL_TOOLS run. The caller must handle `stop_reason == "interrupt"` (cli.py).
+        hitl_clarify: Overrides HITL_CLARIFY: register the ask_user tool, which pauses the agent
+            to ask the user a clarifying question.
+        session_id: Overrides SESSION_ID: persist the conversation and agent state (e.g. trusted
+            tools) under SESSION_DIR, so a later run with the same id picks up where it left off.
         quiet: Don't stream the model output to stdout (the eval runner sets it).
     """
     if enforce_cache_first is None:
         enforce_cache_first = settings.enforce_cache_first
     if live_log is None:
         live_log = settings.live_log
+    if hitl_approval is None:
+        hitl_approval = settings.hitl_approval
+    if hitl_clarify is None:
+        hitl_clarify = settings.hitl_clarify
+    if session_id is None:
+        session_id = settings.session_id
     exporters = setup_telemetry()
     model = build_bedrock_model()
     tools = [research_with_sonar, search_web, search_knowledge_base, search_research_cache]
+    system_prompt = SYSTEM_PROMPT
+    if hitl_clarify:
+        tools.append(ask_user)
+        system_prompt += CLARIFY_PROMPT
     all_hooks = list(hooks)
     if live_log:
         all_hooks.append(LiveLogger())
     if enforce_cache_first:
         all_hooks.append(CacheFirstPolicy())
+    if hitl_approval:
+        # After CacheFirstPolicy: calls it already cancelled aren't sent to the human.
+        all_hooks.append(HumanApproval(settings.hitl_approval_tools))
+        system_prompt += APPROVAL_PROMPT
 
     logger.info("model: %s (region %s)", settings.bedrock_model_id, settings.aws_region_bedrock)
     logger.info("tools: %s", ", ".join(t.tool_name for t in tools))
     logger.info("hooks: %s", ", ".join(type(h).__name__ for h in all_hooks) or "none")
+    if hitl_approval:
+        logger.info("human approval required for: %s", ", ".join(settings.hitl_approval_tools))
     logger.info("structured output: %s", GroundedAnswer.__name__)
     logger.info("traces: %s", ", ".join(exporters) or "disabled")
 
     # LiveLogger prints each step; the default handler would also stream raw tokens on top.
     extra = {"callback_handler": None} if live_log or quiet else {}
+    if session_id:
+        extra["session_manager"] = FileSessionManager(session_id=session_id, storage_dir=settings.session_dir)
+        logger.info("session: %s (stored in %s)", session_id, settings.session_dir)
     return Agent(
         model=model,
-        system_prompt=SYSTEM_PROMPT,
+        system_prompt=system_prompt,
         tools=tools,
         hooks=all_hooks,
         structured_output_model=GroundedAnswer,

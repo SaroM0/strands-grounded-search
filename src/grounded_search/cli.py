@@ -5,15 +5,47 @@ import logging
 import sys
 
 from strands import Agent
+from strands.interrupt import Interrupt
 
 from .agent import build_agent
 from .config import settings
 from .hooks import TrajectoryRecorder
+from .hooks.human_approval import INTERRUPT_NAME as APPROVAL_INTERRUPT
+from .tools.ask_user import INTERRUPT_NAME as CLARIFY_INTERRUPT
 from .telemetry import flush_telemetry
+
+
+def _read(prompt: str) -> str:
+    try:
+        return input(prompt)
+    except EOFError:  # no human on the other end: an empty answer denies / skips
+        return ""
+
+
+def _prompt_human(interrupt: Interrupt) -> str:
+    reason = interrupt.reason or {}
+    print()
+    if interrupt.name == APPROVAL_INTERRUPT:
+        print(f"[approval] {reason.get('tool')} {reason.get('input')}")
+        print(f"   {reason.get('options')}")
+        return _read("   Your choice: ")
+    if interrupt.name == CLARIFY_INTERRUPT:
+        print(f"[question] {reason.get('question')}")
+        return _read("   Your answer: ")
+    print(f"[{interrupt.name}] {reason}")
+    return _read("   Your response: ")
 
 
 def _ask(agent: Agent, recorder: TrajectoryRecorder, query: str) -> None:
     result = agent(query)
+    # Human-in-the-loop: the agent pauses (stop_reason "interrupt") until every pending interrupt
+    # gets a response, then resumes from the same tool call instead of starting over.
+    while result.stop_reason == "interrupt":
+        responses = [
+            {"interruptResponse": {"interruptId": interrupt.id, "response": _prompt_human(interrupt)}}
+            for interrupt in result.interrupts
+        ]
+        result = agent(responses)
     usage = result.metrics.accumulated_usage
 
     print("\n\n" + "=" * 72)

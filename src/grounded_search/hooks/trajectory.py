@@ -14,6 +14,8 @@ from strands.hooks import (
     HookRegistry,
 )
 
+from .interrupts import is_resume
+
 
 @dataclass
 class ToolStep:
@@ -86,6 +88,8 @@ class TrajectoryRecorder(HookProvider):
         registry.add_callback(AfterInvocationEvent, self._on_invocation_end)
 
     def _on_invocation_start(self, event: BeforeInvocationEvent) -> None:
+        if is_resume(event) and self.current:
+            return
         self.current = Trajectory()
         self.history.append(self.current)
 

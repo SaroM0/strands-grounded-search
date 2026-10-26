@@ -74,6 +74,21 @@ class Settings:
         default_factory=lambda: _env("ENFORCE_CACHE_FIRST", "true").lower() == "true"
     )
     live_log: bool = field(default_factory=lambda: _env("LIVE_LOG", "true").lower() == "true")
+
+    # Human-in-the-loop (interrupts): ask before external searches / let the agent ask questions
+    hitl_approval: bool = field(default_factory=lambda: _env("HITL_APPROVAL", "true").lower() == "true")
+    hitl_approval_tools: tuple[str, ...] = field(
+        default_factory=lambda: tuple(
+            name.strip()
+            for name in _env("HITL_APPROVAL_TOOLS", "search_web,research_with_sonar").split(",")
+            if name.strip()
+        )
+    )
+    hitl_clarify: bool = field(default_factory=lambda: _env("HITL_CLARIFY", "true").lower() == "true")
+
+    # Session persistence (FileSessionManager): conversation + agent state (e.g. trusted tools)
+    session_id: str | None = field(default_factory=lambda: _env("SESSION_ID"))
+    session_dir: str = field(default_factory=lambda: _env("SESSION_DIR", ".sessions"))
     log_level: str = field(default_factory=lambda: _env("LOG_LEVEL", "INFO").upper())
 
     # Observability (OpenTelemetry) - see telemetry.py

@@ -16,6 +16,8 @@ from strands.hooks import (
     HookRegistry,
 )
 
+from .interrupts import is_resume
+
 logger = logging.getLogger("grounded_search.agent_loop")
 
 _MAX_TEXT = 300
@@ -100,6 +102,9 @@ class LiveLogger(HookProvider):
         registry.add_callback(AfterInvocationEvent, self._on_invocation_end)
 
     def _on_invocation_start(self, event: BeforeInvocationEvent) -> None:
+        if is_resume(event):
+            logger.info("INVOCATION RESUMED after human input")
+            return
         self._turn = 0
         self._started_at = time.monotonic()
         logger.info("=" * 72)
