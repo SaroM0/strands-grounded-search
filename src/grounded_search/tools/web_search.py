@@ -38,11 +38,19 @@ def search_web(query: str) -> dict:
         A dictionary with a summary of results ("content") and the list of sources ("sources").
     """
     client = get_web_search_client()
+    logger.info("search_web: querying %s (max %d results)", settings.web_search_provider, settings.web_search_max_results)
     result = client.search(query, max_results=settings.web_search_max_results)
+    logger.info("search_web: got %d source(s)", len(result.sources))
 
     try:
         _get_cache_client().upsert(query, tool="search_web", result=result)
-    except Exception:
-        logger.warning("failed to cache search_web result", exc_info=True)
+        logger.info("search_web: result cached in %s", settings.research_cache_collection)
+    except Exception as exc:
+        logger.warning(
+            "search_web: failed to cache result at %s (%s)",
+            settings.qdrant_url,
+            exc,
+            exc_info=logger.isEnabledFor(logging.DEBUG),
+        )
 
     return result.to_dict()

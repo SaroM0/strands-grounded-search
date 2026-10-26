@@ -10,9 +10,14 @@ another query, and evaluates the gathered evidence itself before answering. Ther
 ```
 src/grounded_search/
   config.py              # Centralized settings (env vars)
-  schemas.py              # Source / ToolResult / CachedResearch shared across tools
+  schemas.py              # Source / ToolResult / CachedResearch + GroundedAnswer (Pydantic, final output)
+  telemetry.py            # OpenTelemetry exporters (console / Langfuse / any OTLP backend)
   agent.py                 # Builds the Agent (Strands) with Claude Sonnet 5.5
   cli.py                    # Command-line entry point
+  hooks/
+    live_log.py             # LiveLogger: logs each agent-loop step to the console as it happens
+    trajectory.py           # TrajectoryRecorder: logs model calls, tool calls, order, reformulations
+    cache_first.py          # CacheFirstPolicy: blocks external searches until the cache was checked
   prompts/
     system_prompt.py        # Role, tool-choice heuristic, evidence evaluation, response format
   clients/
@@ -65,10 +70,53 @@ docker compose up -d
 This starts Qdrant on `localhost:6333` (HTTP/REST) and `localhost:6334` (gRPC), persisting data
 to `./qdrant_storage/`. `QDRANT_URL` in `.env` already points at `http://localhost:6333`.
 
+## Observing the agent
+
+### Hooks (`hooks/`)
+
+Strands fires typed events around every step of the agent loop (`BeforeInvocationEvent`,
+`BeforeModelCallEvent`, `BeforeToolCallEvent`, `AfterToolCallEvent`, ...).
+
+- **`LiveLogger`** (`LIVE_LOG=true`, default) logs every step in real time: each model turn (context
+  size, stop reason, what the model said or thought, which tools it decided to call), each tool
+  call (status, duration, cache hits/scores, sources) and the token totals. It replaces Strands'
+  default token-streaming handler. Tools also log what they do (provider, Qdrant collection,
+  caching). `LOG_LEVEL=DEBUG` adds Strands' internal logs.
+- **`TrajectoryRecorder`** only observes. The CLI attaches it and prints, after each answer, the
+  tools called in order with their query, status and duration, plus how many times each tool was
+  reformulated.
+- **`CacheFirstPolicy`** (`ENFORCE_CACHE_FIRST=true`, default) writes to `BeforeToolCallEvent.cancel_tool`:
+  it cancels `search_web` / `research_with_sonar` until `search_research_cache` was called in the
+  same invocation. The model receives the cancellation as a tool error, so the trajectory shows how
+  it adapts to a rule the prompt only *suggests*.
+
+### Structured output (`schemas.GroundedAnswer`)
+
+The agent is built with `structured_output_model=GroundedAnswer`. Strands exposes the Pydantic
+schema to the model as a tool, validates the call and re-prompts the model on validation errors.
+`result.structured_output` is a typed object (answer, citations, uncertainties, limitations,
+confidence) instead of free-form text. It shows up in the trajectory as a `GroundedAnswer` tool
+call.
+
+### Traces (`telemetry.py`)
+
+Strands emits OpenTelemetry spans: `invoke_agent` > `execute_event_loop_cycle` > `chat` (model
+call, with tokens) / `execute_tool <name>`. Exporters:
+
+- `OTEL_TRACES_FILE` (default `traces.jsonl`): one JSON span per line, appended to a file. On by
+  default and kept out of the console so the live logs stay readable.
+- `OTEL_CONSOLE_EXPORT=true`: also print raw spans to stdout.
+
+Langfuse and OTLP need the exporter: `pip install -e ".[otel]"`.
+
+- `LANGFUSE_PUBLIC_KEY` + `LANGFUSE_SECRET_KEY` (+ `LANGFUSE_HOST`): send them to Langfuse.
+- `OTEL_EXPORTER_OTLP_ENDPOINT` (+ `OTEL_EXPORTER_OTLP_HEADERS`): any OTLP backend, e.g. Arize
+  Phoenix at `http://localhost:6006/v1/traces`.
+
 ## Usage
 
 ```bash
-pip install -e ".[dev]"
+pip install -e ".[dev,otel]"
 cp .env.example .env   # fill in the API keys you need
 docker compose up -d   # start local Qdrant
 python -m grounded_search.cli "What evidence exists for and against sodium-ion batteries?"

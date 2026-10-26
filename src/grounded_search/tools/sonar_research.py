@@ -7,6 +7,7 @@ from strands import tool
 
 from ..clients.perplexity_client import PerplexityClient
 from ..clients.research_cache_client import ResearchCacheClient
+from ..config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -37,11 +38,19 @@ def research_with_sonar(query: str) -> dict:
     Returns:
         A dictionary with the synthesis ("content") and the cited sources ("sources").
     """
+    logger.info("research_with_sonar: asking Perplexity %s", settings.perplexity_model)
     result = _client.research(query)
+    logger.info("research_with_sonar: got %d chars, %d source(s)", len(result.content), len(result.sources))
 
     try:
         _get_cache_client().upsert(query, tool="research_with_sonar", result=result)
-    except Exception:
-        logger.warning("failed to cache research_with_sonar result", exc_info=True)
+        logger.info("research_with_sonar: result cached in %s", settings.research_cache_collection)
+    except Exception as exc:
+        logger.warning(
+            "research_with_sonar: failed to cache result at %s (%s)",
+            settings.qdrant_url,
+            exc,
+            exc_info=logger.isEnabledFor(logging.DEBUG),
+        )
 
     return result.to_dict()

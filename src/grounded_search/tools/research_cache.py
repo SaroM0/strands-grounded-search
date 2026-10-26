@@ -41,14 +41,25 @@ def search_research_cache(query: str) -> dict:
         it), "age_seconds", "score" (semantic similarity to this query), "content", and
         "sources".
     """
+    logger.info(
+        "search_research_cache: querying %s (min_score=%.2f)",
+        settings.research_cache_collection,
+        settings.research_cache_min_score,
+    )
     try:
         hits = _get_client().search(
             query,
             max_results=settings.research_cache_max_results,
             min_score=settings.research_cache_min_score,
         )
-    except Exception:
-        logger.warning("research cache lookup failed", exc_info=True)
-        return {"cache_hit": False, "results": []}
+    except Exception as exc:
+        logger.warning(
+            "search_research_cache: cache unavailable at %s (%s) - is Qdrant running? (docker compose up -d)",
+            settings.qdrant_url,
+            exc,
+            exc_info=logger.isEnabledFor(logging.DEBUG),
+        )
+        return {"cache_hit": False, "results": [], "error": f"research cache unavailable: {exc}"}
 
+    logger.info("search_research_cache: %d hit(s) above threshold", len(hits))
     return {"cache_hit": bool(hits), "results": [hit.to_dict() for hit in hits]}

@@ -54,5 +54,24 @@ class Settings:
         default_factory=lambda: float(_env("RESEARCH_CACHE_MIN_SCORE", "0.75"))
     )
 
+    # Hooks
+    enforce_cache_first: bool = field(
+        default_factory=lambda: _env("ENFORCE_CACHE_FIRST", "true").lower() == "true"
+    )
+    live_log: bool = field(default_factory=lambda: _env("LIVE_LOG", "true").lower() == "true")
+    log_level: str = field(default_factory=lambda: _env("LOG_LEVEL", "INFO").upper())
+
+    # Observability (OpenTelemetry) - see telemetry.py
+    otel_traces_file: str | None = field(default_factory=lambda: _env("OTEL_TRACES_FILE", "traces.jsonl"))
+    otel_console_export: bool = field(
+        default_factory=lambda: _env("OTEL_CONSOLE_EXPORT", "false").lower() == "true"
+    )
+    otel_exporter_otlp_endpoint: str | None = field(
+        default_factory=lambda: _env("OTEL_EXPORTER_OTLP_ENDPOINT")
+    )
+    langfuse_public_key: str | None = field(default_factory=lambda: _env("LANGFUSE_PUBLIC_KEY"))
+    langfuse_secret_key: str | None = field(default_factory=lambda: _env("LANGFUSE_SECRET_KEY"))
+    langfuse_host: str = field(default_factory=lambda: _env("LANGFUSE_HOST", "https://cloud.langfuse.com"))
+
 
 settings = Settings()

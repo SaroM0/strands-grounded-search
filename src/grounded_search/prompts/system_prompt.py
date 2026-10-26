@@ -44,12 +44,14 @@ there low-quality, biased, or outdated sources?
 detail? If not, consider running another query before answering.
 
 ## Final answer format (Grounded Answer)
-Always answer with:
-1. Direct answer to the question.
-2. Citations: explicit reference to the sources used (URL or document identifier) for each \
-relevant claim.
-3. Uncertainties: which parts of the answer are weaker or rely on few sources.
-4. Limitations: what you couldn't verify, or what fell outside the scope of the available tools.
+Your final answer is returned as a structured GroundedAnswer object (validated schema), not as \
+free text:
+- answer: direct answer to the question.
+- citations: one entry per relevant claim, with the source (URL or document identifier) and the \
+tool that returned it.
+- uncertainties: which parts of the answer are weaker or rely on few sources.
+- limitations: what you couldn't verify, or what fell outside the scope of the available tools.
+- confidence: low / medium / high, given the evidence you gathered.
 
 Respond in the same language the question was asked in. Be precise and don't fabricate sources \
 or data that don't come from the tools.

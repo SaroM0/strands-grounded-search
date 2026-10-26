@@ -1,10 +1,14 @@
 """Tool: search_knowledge_base."""
 from __future__ import annotations
 
+import logging
+
 from strands import tool
 
 from ..clients.knowledge_base_client import KnowledgeBaseClient
 from ..config import settings
+
+logger = logging.getLogger(__name__)
 
 _client: KnowledgeBaseClient | None = None
 
@@ -30,5 +34,7 @@ def search_knowledge_base(query: str) -> dict:
     Returns:
         A dictionary with the retrieved passages ("content") and their sources ("sources").
     """
+    logger.info("search_knowledge_base: querying Qdrant collection %s (max %d)", settings.qdrant_collection, settings.kb_max_results)
     result = _get_client().search(query, max_results=settings.kb_max_results)
+    logger.info("search_knowledge_base: got %d passage(s)", len(result.sources))
     return result.to_dict()
