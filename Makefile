@@ -5,7 +5,7 @@ PYTEST := $(VENV)/bin/pytest
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install run test up down logs clean
+.PHONY: help install run eval test up down logs clean
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*## "}; {printf "%-10s %s\n", $$1, $$2}'
@@ -26,6 +26,9 @@ logs: ## Follow Qdrant logs
 
 run: ## Run the agent interactively (python -m grounded_search.cli)
 	$(PYTHON) -m grounded_search.cli
+
+eval: ## Run the eval dataset, comparing both variants (ARGS="--ids a,b --no-judge" to customize)
+	$(PYTHON) -m grounded_search.evals.runner --variants cache_first,free $(ARGS)
 
 test: ## Run the test suite
 	$(PYTEST) -q

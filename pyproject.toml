@@ -23,6 +23,7 @@ dev = [
 
 [project.scripts]
 grounded-search = "grounded_search.cli:main"
+grounded-search-eval = "grounded_search.evals.runner:main"
 
 [build-system]
 requires = ["setuptools>=68.0"]

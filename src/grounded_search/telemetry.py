@@ -21,6 +21,7 @@ from .config import settings
 logger = logging.getLogger(__name__)
 
 _telemetry: StrandsTelemetry | None = None
+_active: list[str] = []
 _traces_file = None
 
 
@@ -38,9 +39,9 @@ def _langfuse_exporter_kwargs() -> dict:
 
 def setup_telemetry() -> list[str]:
     """Configures the exporters enabled in settings. Returns a description of each active one."""
-    global _telemetry, _traces_file
+    global _telemetry, _active, _traces_file
     if _telemetry is not None:
-        return []
+        return _active
 
     use_langfuse = bool(settings.langfuse_public_key and settings.langfuse_secret_key)
     use_otlp = bool(settings.otel_exporter_otlp_endpoint)
@@ -67,7 +68,7 @@ def setup_telemetry() -> list[str]:
     except ImportError:
         logger.warning("OTLP exporter not installed: pip install -e '.[otel]'")
 
-    _telemetry = telemetry
+    _telemetry, _active = telemetry, active
     return active
 
 

@@ -7,3 +7,4 @@ venv/
 *.egg-info/
 qdrant_storage/
 traces.jsonl
+evals/results/

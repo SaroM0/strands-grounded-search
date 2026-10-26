@@ -14,6 +14,7 @@ src/grounded_search/
   telemetry.py            # OpenTelemetry exporters (console / Langfuse / any OTLP backend)
   agent.py                 # Builds the Agent (Strands) with Claude Sonnet 5.5
   cli.py                    # Command-line entry point
+  evals/                    # Offline evaluation: dataset loader, metrics, LLM judge, runner
   hooks/
     live_log.py             # LiveLogger: logs each agent-loop step to the console as it happens
     trajectory.py           # TrajectoryRecorder: logs model calls, tool calls, order, reformulations
@@ -113,6 +114,51 @@ Langfuse and OTLP need the exporter: `pip install -e ".[otel]"`.
 - `OTEL_EXPORTER_OTLP_ENDPOINT` (+ `OTEL_EXPORTER_OTLP_HEADERS`): any OTLP backend, e.g. Arize
   Phoenix at `http://localhost:6006/v1/traces`.
 
+## Evaluating the agent
+
+The hooks and traces show *what* the agent did; `evals/` measures *how well*. The runner sends
+every case in `evals/dataset.jsonl` to a fresh agent (no shared history), records the trajectory
+plus the sources the tools actually returned, and has an LLM judge grade the answer.
+
+```bash
+make eval                                                        # both variants, every case
+python -m grounded_search.evals.runner --variants free --no-judge --ids einstein-nobel
+```
+
+Each case is one JSON line:
+
+```json
+{"id": "einstein-nobel", "question": "...", "reference": "...", "must_include": ["photoelectric effect"],
+ "expected_tools": ["search_web"], "answerable": true, "tags": ["false_premise"]}
+```
+
+Only `id` and `question` are required. Use `answerable: false` for questions the tools can't
+answer (the agent should say so) and `expected_tools` for e.g. questions about your own documents
+(`search_knowledge_base`).
+
+Variants: `cache_first` (`CacheFirstPolicy` on) and `free` (the agent decides on its own). The
+default is whatever `ENFORCE_CACHE_FIRST` says; `make eval` compares both.
+
+Metrics per variant (printed as a table, saved to `evals/results/<timestamp>/summary.json`; every
+case with its answer, trajectory and returned sources goes to `results.jsonl`):
+
+- **Quality (judge)**: `judge_score` (correct=1, partial=0.5, incorrect=0), `facts_covered`
+  (share of `must_include` facts in the answer), `unsupported_claims` (claims not backed by the
+  evidence the tools returned).
+- **Citations (deterministic)**: `citation_precision`, the share of citations whose source is a
+  URL or title a tool actually returned. Below 1.0 means hallucinated or mangled sources.
+- **Behavior**: `expected_tools_rate`, `abstention_rate` (unanswerable cases), `cache_first_rate`,
+  `tool_calls`, `external_calls`, `blocked_calls`, `reformulations`.
+- **Cost**: `model_calls`, `input_tokens`, `output_tokens`, `latency_s`.
+
+The judge uses `BEDROCK_MODEL_ID` unless you pass `--judge-model`; grading with the same model
+the agent uses is cheaper but less independent. `--no-judge` keeps only the deterministic metrics.
+
+Caveat: `search_web` / `research_with_sonar` write to the research cache, so later cases, variants
+and runs can hit what earlier ones cached. That biases `external_calls` and cache metrics. For a
+clean comparison, point `RESEARCH_CACHE_COLLECTION` at a scratch collection and delete it between
+runs.
+
 ## Usage
 
 ```bash
@@ -127,3 +173,5 @@ python -m grounded_search.cli "What evidence exists for and against sodium-ion b
 ```bash
 pytest
 ```
+
+`tests/test_evals.py` checks the eval metrics against a scripted fake model; no API calls.
