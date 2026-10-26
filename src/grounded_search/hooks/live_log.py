@@ -42,6 +42,12 @@ def _summarize_payload(payload: dict) -> list[str]:
                 f"  - score={entry.get('score', 0):.3f} tool={entry.get('tool')} age={age_min:.0f}min "
                 f"query={entry.get('query')!r}"
             )
+    relevance = payload.get("relevance")
+    if isinstance(relevance, dict):
+        lines.append(
+            f"relevance={relevance.get('relevant')} score={relevance.get('score')} "
+            f"relevant_passages={relevance.get('relevant_passages', [])}"
+        )
     if payload.get("content"):
         lines.append(f"content: {_truncate(str(payload['content']))}")
     sources = payload.get("sources") or []

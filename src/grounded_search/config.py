@@ -42,6 +42,21 @@ class Settings:
     embedding_provider: str = field(default_factory=lambda: _env("EMBEDDING_PROVIDER", "fastembed"))
     embedding_model: str = field(default_factory=lambda: _env("EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5"))
     kb_max_results: int = field(default_factory=lambda: int(_env("KB_MAX_RESULTS", "5")))
+    # Minimum Qdrant similarity for a passage to be returned at all (empty = no threshold)
+    kb_min_score: float | None = field(
+        default_factory=lambda: float(_env("KB_MIN_SCORE")) if _env("KB_MIN_SCORE") else None
+    )
+
+    # Corrective RAG: an LLM grades the retrieved passages (context precision) so the agent knows
+    # when the knowledge base isn't enough and it should fall back to the web
+    kb_relevance_grading: bool = field(
+        default_factory=lambda: _env("KB_RELEVANCE_GRADING", "true").lower() == "true"
+    )
+    kb_relevance_threshold: float = field(
+        default_factory=lambda: float(_env("KB_RELEVANCE_THRESHOLD", "0.5"))
+    )
+    # Defaults to BEDROCK_MODEL_ID; a smaller model (e.g. Haiku) is enough for grading
+    kb_relevance_model_id: str | None = field(default_factory=lambda: _env("KB_RELEVANCE_MODEL_ID"))
 
     # search_research_cache tool (Qdrant) - semantic cache of search_web / research_with_sonar results
     research_cache_collection: str = field(

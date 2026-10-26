@@ -27,6 +27,7 @@ src/grounded_search/
     web_search_client.py    # Tavily / Brave (interchangeable)
     knowledge_base_client.py  # Qdrant: search over documents the user uploaded
     research_cache_client.py # Qdrant: upsert/search a semantic cache of past tool results
+    relevance_grader.py     # LLM grader of knowledge-base passages (corrective RAG)
   tools/
     sonar_research.py       # @tool research_with_sonar (writes to the research cache)
     web_search.py            # @tool search_web (writes to the research cache)
@@ -42,12 +43,35 @@ tests/                       # Unit tests per client, with HTTP/Qdrant mocked
 - **`search_web(query)`** — Tavily or Brave. Raw results (URL, title, snippet), with no synthesis
   from another model. For specific or verifiable facts.
 - **`search_knowledge_base(query)`** — Qdrant + embeddings. Semantic retrieval over documents
-  uploaded by the user.
+  uploaded by the user, with a relevance grade of what it retrieved (see *Corrective RAG*).
 - **`search_research_cache(query)`** — Qdrant + embeddings. Semantic retrieval over past
   `search_web` / `research_with_sonar` results.
 
 The agent decides which one(s) to use, how many times, and when to stop — see
 `prompts/system_prompt.py`.
+
+## Corrective RAG
+
+`search_knowledge_base` doesn't just return the top-k passages: an LLM grades each one as
+useful or not for the query, and the verdicts are aggregated into context precision without
+reference (the same metric as RAGAS' `LLMContextPrecisionWithoutReference`, computed here
+without the RAGAS/LangChain dependencies). The tool result carries a `relevance` block:
+
+```json
+{"relevant": "no", "score": 0.5, "threshold": 0.5, "relevant_passages": [2]}
+```
+
+The system prompt tells the agent what to do with it: ground the answer on the relevant passages
+when `relevant` is `"yes"`, and otherwise rephrase and retry, or fall back to the web (cache
+first, then `search_web` / `research_with_sonar`). Mixed questions ("what's my insurance
+provider, and what's Allstate's phone number?") get each part from the source where it lives.
+
+- `KB_RELEVANCE_GRADING` (default `true`) turns the grading on/off, to compare plain vs corrective RAG.
+- `KB_RELEVANCE_THRESHOLD` (default `0.5`): context precision above it counts as relevant.
+- `KB_RELEVANCE_MODEL_ID`: grader model, defaults to `BEDROCK_MODEL_ID` (a Haiku model is enough).
+- `KB_MIN_SCORE`: optional Qdrant similarity threshold applied before grading.
+
+If grading fails, `relevant` is `"unknown"` and the passages are still returned.
 
 ## Research cache
 

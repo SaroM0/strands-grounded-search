@@ -18,12 +18,13 @@ class KnowledgeBaseClient:
         self._embedder = embedder or get_embedder()
         self._collection = settings.qdrant_collection
 
-    def search(self, query: str, max_results: int) -> ToolResult:
+    def search(self, query: str, max_results: int, min_score: float | None = None) -> ToolResult:
         vector = self._embedder.embed(query)
         hits = self._client.query_points(
             collection_name=self._collection,
             query=vector,
             limit=max_results,
+            score_threshold=min_score,
         ).points
 
         sources = [
@@ -34,5 +35,6 @@ class KnowledgeBaseClient:
             )
             for hit in hits
         ]
-        content = "\n\n".join(f"- {source.title}: {source.snippet}" for source in sources)
+        # Numbered so the relevance grader's "relevant_passages" can point at them.
+        content = "\n\n".join(f"[{i}] {source.title}: {source.snippet}" for i, source in enumerate(sources, 1))
         return ToolResult(content=content, sources=sources)
